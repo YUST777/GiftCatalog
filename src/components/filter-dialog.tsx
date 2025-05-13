@@ -1,9 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useAppState } from '@/lib/state'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Search, X } from 'lucide-react'
 import { getItems, getAttributes, getCollectionData } from '@/lib/api'
 import { toast } from 'sonner'
 import backdrops from '../../backdrops.json'
@@ -28,6 +30,8 @@ export function FilterDialog({ open, onOpenChange }: FilterDialogProps) {
   )
   const [isApplying, setIsApplying] = useState(false)
   const [isLoadingAttributes, setIsLoadingAttributes] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const searchInputRef = useRef<HTMLInputElement>(null)
 
   const getPreviewUrl = (traitType: string, value: string) => {
     if (!state.collectionData?.giftName) return ''
@@ -48,6 +52,22 @@ export function FilterDialog({ open, onOpenChange }: FilterDialogProps) {
   useEffect(() => {
     setSelectedAttributes({ ...state.filters.attributes })
   }, [state.filters.attributes])
+
+  // Focus search input when dialog opens
+  useEffect(() => {
+    if (open && searchInputRef.current) {
+      setTimeout(() => {
+        searchInputRef.current?.focus();
+      }, 100);
+    }
+  }, [open]);
+
+  // Clear search when dialog closes
+  useEffect(() => {
+    if (!open) {
+      setSearchQuery('');
+    }
+  }, [open]);
 
   // SWR for attributes
   const { data: swrAttributes, error: swrAttrError, isLoading: swrAttrLoading } = useSWR(
@@ -203,12 +223,62 @@ export function FilterDialog({ open, onOpenChange }: FilterDialogProps) {
     0
   )
 
+  // Filter attributes based on search query
+  const filterAttributesByQuery = (traitType: string, values: Record<string, any>) => {
+    if (!searchQuery) return { traitType, values, hasMatches: true };
+    
+    const lowercaseQuery = searchQuery.toLowerCase();
+    const matchingValues = Object.entries(values).filter(([value]) => 
+      value.toLowerCase().includes(lowercaseQuery)
+    );
+    
+    const hasTraitTypeMatch = traitType.toLowerCase().includes(lowercaseQuery);
+    
+    return {
+      traitType,
+      values: Object.fromEntries(matchingValues),
+      hasMatches: matchingValues.length > 0 || hasTraitTypeMatch,
+      isTraitMatch: hasTraitTypeMatch
+    };
+  };
+
+  // Get filtered attributes
+  const filteredAttributes = Object.entries(state.attributesWithPercentages)
+    .map(([traitType, values]) => filterAttributesByQuery(traitType, values))
+    .filter(({ hasMatches }) => hasMatches || searchQuery === '');
+
+  // Check if search has any results
+  const hasSearchResults = filteredAttributes.length > 0;
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="max-h-[85vh] overflow-y-auto dark:bg-[#141415] dark:text-[#FFFFFF] dark:border-[#1f1f20]">
         <SheetHeader>
           <SheetTitle className="text-lg font-bold mb-2">Filter Attributes</SheetTitle>
         </SheetHeader>
+
+        {/* Search input */}
+        <div className="relative mb-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input
+              ref={searchInputRef}
+              type="text"
+              placeholder="Search across all filters..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 pr-9 py-2 w-full bg-background dark:bg-gray-800 text-sm border border-border dark:border-gray-700 rounded-lg"
+            />
+            {searchQuery && (
+              <button 
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2"
+              >
+                <X className="h-4 w-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200" />
+              </button>
+            )}
+          </div>
+        </div>
 
         <div className="flex justify-end mb-4">
           <Button
@@ -241,16 +311,36 @@ export function FilterDialog({ open, onOpenChange }: FilterDialogProps) {
           <p className="text-gray-500 dark:text-[#FFFFFF]/80 text-sm py-4">
             No attributes available. Please select a collection first.
           </p>
+        ) : !hasSearchResults && searchQuery ? (
+          <div className="flex flex-col items-center justify-center py-8">
+            <p className="text-gray-500 dark:text-[#FFFFFF]/80 text-sm">
+              No results found for "{searchQuery}"
+            </p>
+            <Button 
+              variant="link" 
+              onClick={() => setSearchQuery('')}
+              className="text-indigo-500 dark:text-indigo-400 mt-2"
+            >
+              Clear search
+            </Button>
+          </div>
         ) : (
           <>
-            {Object.entries(state.attributesWithPercentages).map(([traitType, values]) => (
-              <div key={traitType} className="mb-6">
+            {filteredAttributes.map(({ traitType, values, isTraitMatch }) => (
+              <div key={traitType} className={`mb-6 ${isTraitMatch && searchQuery ? 'bg-muted/10 dark:bg-indigo-900/10 p-3 rounded-lg border border-indigo-500/20' : ''}`}>
                 <h3 className="text-base font-semibold mb-3 text-gray-800 dark:text-[#FFFFFF]">
                   {traitType}
                 </h3>
                 <div className="space-y-2 max-h-60 overflow-y-auto pr-1 scrollbar-hide">
                   {Object.entries(values).map(([value, { count, percentage }]) => (
-                    <div key={value} className="flex items-center">
+                    <div 
+                      key={value} 
+                      className={`flex items-center ${
+                        searchQuery && value.toLowerCase().includes(searchQuery.toLowerCase())
+                          ? 'bg-indigo-50 dark:bg-indigo-900/20 p-1 rounded-lg'
+                          : ''
+                      }`}
+                    >
                       <input
                         type="checkbox"
                         id={`${traitType}-${value}`}
