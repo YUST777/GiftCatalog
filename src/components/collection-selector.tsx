@@ -1,21 +1,15 @@
 'use client'
 
 import { useEffect, useState, useRef } from 'react'
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import { Button } from '@/components/ui/button'
 import { useAppState } from '@/lib/state'
 import { listExports, getCollectionData } from '@/lib/api'
 import { toast } from 'sonner'
 import { useCollectionData } from '@/hooks/use-collection-data'
 import dynamic from 'next/dynamic'
-import { Loader2 } from 'lucide-react'
+import { Loader2, ChevronUp, Search, X } from 'lucide-react'
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
+import { Input } from '@/components/ui/input'
 
 const Lottie = dynamic(() => import('lottie-react'), { ssr: false })
 
@@ -44,6 +38,9 @@ export function CollectionSelector() {
   const [overlayKey, setOverlayKey] = useState('')
   const [assetStatus, setAssetStatus] = useState<'loading' | 'loaded' | 'failed'>('loading')
   const overlayTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const [isCollectionsOpen, setIsCollectionsOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const searchInputRef = useRef<HTMLInputElement>(null)
 
   // Use SWR for collection data
   const {
@@ -87,6 +84,8 @@ export function CollectionSelector() {
     setShowMiniLoading(true)
     setAssetStatus('loading')
     setSelectedGift(value)
+    setIsCollectionsOpen(false) // Close the collection drawer after selection
+    setSearchQuery('') // Reset search query
   }
 
   // Load Lottie or image when overlayKey changes
@@ -126,6 +125,30 @@ export function CollectionSelector() {
     if (overlayTimeoutRef.current) clearTimeout(overlayTimeoutRef.current)
   }
 
+  useEffect(() => {
+    // Initialize selected gift from localStorage if available
+    const storedGift = localStorage.getItem('lastGift');
+    if (storedGift && !selectedGift) {
+      setSelectedGift(storedGift);
+    }
+  }, [selectedGift]);
+
+  // Focus search input when sheet opens
+  useEffect(() => {
+    if (isCollectionsOpen && searchInputRef.current) {
+      setTimeout(() => {
+        searchInputRef.current?.focus();
+      }, 100);
+    }
+  }, [isCollectionsOpen]);
+
+  // Filter collections based on search query
+  const filteredCollections = searchQuery.trim() === '' 
+    ? state.gifts 
+    : state.gifts.filter(gift => 
+        gift.name.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+
   return (
     <div className="relative">
       {showMiniLoading && (
@@ -152,44 +175,124 @@ export function CollectionSelector() {
           <div className="text-xs font-semibold text-foreground dark:text-foreground mt-2">Loading {selectedGift || 'Collection'}...</div>
         </div>
       )}
-      <Select onValueChange={handleCollectionChange} disabled={swrLoading} defaultValue={localStorage.getItem('lastGift') || undefined}>
-        <SelectTrigger className="w-full bg-card text-foreground border border-border dark:border-border/30 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 transition-all duration-200 text-xs shadow-sm">
-          <SelectValue placeholder="Select Collection" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectGroup>
-            <SelectLabel>Collections</SelectLabel>
-            {state.gifts.map((gift) => (
-              <SelectItem
-                key={gift.name}
-                value={gift.name}
-                className="text-xs flex items-center"
-              >
-                <img
-                  src={getCollectionImage(gift.name, 'jpg')}
-                  alt={gift.name}
-                  className="w-7 h-7 object-contain mr-2 align-middle"
-                  style={{ background: 'transparent', border: 'none', boxShadow: 'none', display: 'inline-block', verticalAlign: 'middle' }}
-                  onError={(e) => {
-                    const img = e.target as HTMLImageElement;
-                    if (img.src.endsWith('.jpg')) {
-                      img.src = getCollectionImage(gift.name, 'png');
-                    } else {
-                      img.src = '/images/new-gift-logo.jpg';
-                    }
-                  }}
-                />
-                <span className="align-middle">{gift.name} ({gift.total} items)</span>
-              </SelectItem>
-            ))}
-            {state.gifts.length === 0 && (
-              <SelectItem value="loading" disabled>
-                {swrLoading ? 'Loading collections...' : 'No collections available'}
-              </SelectItem>
+      
+      {/* Collection Selection Button */}
+      <Button 
+        onClick={() => setIsCollectionsOpen(true)}
+        disabled={swrLoading}
+        className="w-full bg-card text-foreground border border-border dark:border-border/30 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 transition-all duration-200 text-xs shadow-sm flex items-center justify-between"
+      >
+        <div className="flex items-center">
+          {selectedGift && (
+            <img
+              src={getCollectionImage(selectedGift, 'jpg')}
+              alt={selectedGift}
+              className="w-7 h-7 object-contain mr-2"
+              onError={(e) => {
+                const img = e.target as HTMLImageElement;
+                if (img.src.endsWith('.jpg')) {
+                  img.src = getCollectionImage(selectedGift, 'png');
+                } else {
+                  img.src = '/images/new-gift-logo.jpg';
+                }
+              }}
+            />
+          )}
+          <span>{selectedGift || 'Select Collection'}</span>
+        </div>
+        <ChevronUp className="h-4 w-4 ml-2" />
+      </Button>
+
+      {/* Collections Slider Sheet */}
+      <Sheet open={isCollectionsOpen} onOpenChange={setIsCollectionsOpen}>
+        <SheetContent 
+          className="max-h-[85vh] overflow-y-auto dark:bg-[#141415] dark:text-[#FFFFFF] dark:border-[#1f1f20] p-4 rounded-t-xl shadow-lg"
+        >
+          <SheetHeader className="mb-4">
+            <SheetTitle className="text-lg font-bold">Browse Collections</SheetTitle>
+          </SheetHeader>
+          
+          {/* Search input */}
+          <div className="relative mb-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input
+                ref={searchInputRef}
+                type="text"
+                placeholder="Search collections..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 pr-9 py-2 w-full bg-background dark:bg-gray-800 text-sm border border-border dark:border-gray-700 rounded-lg"
+              />
+              {searchQuery && (
+                <button 
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2"
+                >
+                  <X className="h-4 w-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200" />
+                </button>
+              )}
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-3 mt-2">
+            {filteredCollections.length > 0 ? (
+              filteredCollections.map((gift) => (
+                <div 
+                  key={gift.name} 
+                  className={`p-3 rounded-lg border cursor-pointer transition-all duration-200 hover:border-indigo-500 hover:shadow-md flex flex-col items-center text-center ${
+                    selectedGift === gift.name 
+                      ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30' 
+                      : 'border-border dark:border-border/30'
+                  }`}
+                  onClick={() => handleCollectionChange(gift.name)}
+                >
+                  <div className="w-full aspect-square flex items-center justify-center mb-2">
+                    <img
+                      src={getCollectionImage(gift.name, 'jpg')}
+                      alt={gift.name}
+                      className="max-w-full max-h-full object-contain rounded-md"
+                      style={{ background: 'transparent', border: 'none', boxShadow: 'none' }}
+                      onError={(e) => {
+                        const img = e.target as HTMLImageElement;
+                        if (img.src.endsWith('.jpg')) {
+                          img.src = getCollectionImage(gift.name, 'png');
+                        } else {
+                          img.src = '/images/new-gift-logo.jpg';
+                        }
+                      }}
+                    />
+                  </div>
+                  <div className="font-medium text-xs mt-1">{gift.name}</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">{gift.total} items</div>
+                </div>
+              ))
+            ) : searchQuery ? (
+              <div className="col-span-2 py-8 text-center">
+                <p className="text-gray-500 dark:text-gray-400">No collections match "{searchQuery}"</p>
+                <Button 
+                  variant="link" 
+                  onClick={() => setSearchQuery('')}
+                  className="text-indigo-500 dark:text-indigo-400 mt-2"
+                >
+                  Clear search
+                </Button>
+              </div>
+            ) : (
+              <div className="col-span-2 flex flex-col items-center justify-center py-8">
+                {swrLoading ? (
+                  <>
+                    <Loader2 className="w-8 h-8 animate-spin text-indigo-500 mb-2" />
+                    <p className="text-gray-500 dark:text-gray-400 text-sm">Loading collections...</p>
+                  </>
+                ) : (
+                  <p className="text-gray-500 dark:text-gray-400 text-sm">No collections available</p>
+                )}
+              </div>
             )}
-          </SelectGroup>
-        </SelectContent>
-      </Select>
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }
