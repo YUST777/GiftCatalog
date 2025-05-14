@@ -5,12 +5,61 @@ import { useAppState } from '@/lib/state'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Search, X } from 'lucide-react'
+import { Search, X, Image as ImageIcon } from 'lucide-react'
 import { getItems, getAttributes, getCollectionData } from '@/lib/api'
 import { toast } from 'sonner'
 import backdrops from '../../backdrops.json'
 import useSWR from 'swr'
 const enc = encodeURIComponent
+
+// Map database collection names to folder names
+const folderNameMapping: Record<string, string> = {
+  'Astral Shard': 'astral shard',
+  'B-day Candle': 'b-day candle', 
+  'Berry Box': 'berry box',
+  'Bunny Muffin': 'bunny muffin',
+  'Crystal Ball': 'crystal ball',
+  'Diamond Ring': 'diamond ring',
+  'Durov\'s Cap': 'durov\'s cap',
+  'Electric Skull': 'electric skull',
+  'Eternal Candle': 'eternal candle',
+  'Eternal Rose': 'eternal rose',
+  'Evil Eye': 'evil eye',
+  'Flying Broom': 'flying broom',
+  'Genie Lamp': 'genie lamp',
+  'Ginger Cookie': 'ginger cookie',
+  'Hanging Star': 'hanging star',
+  'Hex Pot': 'hex pot',
+  'Hypno Lollipop': 'hypno lollipop',
+  'Ion Gem': 'ion gem',
+  'Jelly Bunny': 'jelly bunny',
+  'Jingle Bells': 'jingle bells',
+  'Kissed Frog': 'kissed frog',
+  'Loot Bag': 'loot bag',
+  'Love Candle': 'love candle',
+  'Love Potion': 'love potion',
+  'Mad Pumpkin': 'mad pumpkin',
+  'Magic Potion': 'magic potion',
+  'Mini Oscar': 'mini oscar',
+  'Perfume Bottle': 'perfume bottle',
+  'Plush Pepe': 'plush pepe',
+  'Precious Peach': 'precious peach',
+  'Santa Hat': 'santa hat',
+  'Scared Cat': 'scared cat',
+  'Sharp Tongue': 'sharp tongue',
+  'Signet Ring': 'signet ring',
+  'Skull Flower': 'skull flower',
+  'Snow Mittens': 'snow mittens',
+  'Spiced Wine': 'spiced wine',
+  'Spy Agaric': 'spy agaric',
+  'Star Notepad': 'star notepad',
+  'Swiss Watch': 'swiss watch',
+  'Toy Bear': 'toy bear',
+  'Trapped Heart': 'trapped heart',
+  'Vintage Cigar': 'vintage cigar',
+  'Voodoo Doll': 'voodoo doll',
+  'Witch Hat': 'witch hat'
+}
 
 interface FilterDialogProps {
   open: boolean
@@ -31,21 +80,60 @@ export function FilterDialog({ open, onOpenChange }: FilterDialogProps) {
   const [isApplying, setIsApplying] = useState(false)
   const [isLoadingAttributes, setIsLoadingAttributes] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const [debugMode, setDebugMode] = useState(false)
   const searchInputRef = useRef<HTMLInputElement>(null)
+  const [imageLoadErrors, setImageLoadErrors] = useState<Record<string, boolean>>({})
 
-  const getPreviewUrl = (traitType: string, value: string) => {
+  // Debug function to toggle debug mode with 5 consecutive clicks
+  const clickCount = useRef(0)
+  const clickTimer = useRef<NodeJS.Timeout | null>(null)
+  
+  const handleDebugClick = () => {
+    clickCount.current += 1
+    
+    if (clickTimer.current) {
+      clearTimeout(clickTimer.current)
+    }
+    
+    clickTimer.current = setTimeout(() => {
+      clickCount.current = 0
+    }, 1000)
+    
+    if (clickCount.current >= 5) {
+      setDebugMode(prev => !prev)
+      clickCount.current = 0
+      toast.success(debugMode ? 'Debug mode disabled' : 'Debug mode enabled')
+    }
+  }
+
+  // Get the model image path
+  const getModelImagePath = (modelName: string) => {
     if (!state.collectionData?.giftName) return ''
-    const collection = enc(state.collectionData.giftName)
-    const encoded = enc(value)
-    if (traitType.toLowerCase() === 'model') {
-      return `https://gifts.coffin.meme/${collection}/${encoded}.png`
+    
+    // Get the folder name corresponding to the current gift name
+    const dbCollectionName = state.collectionData.giftName
+    
+    // The folder names should keep spaces, matching the format used by gifts.coffin.meme
+    // e.g., "b-day candle" rather than "bdaycandle"
+    const folderName = dbCollectionName.toLowerCase()
+    
+    // Properly encode both the folder name and model name for the URL
+    const encodedFolderName = encodeURIComponent(folderName)
+    const encodedModelName = encodeURIComponent(modelName)
+    
+    // Create the path to the image with proper URL encoding
+    const imagePath = `/Gift Model Preview/${encodedFolderName}/${encodedModelName}.png`
+    
+    if (debugMode) {
+      console.log('Collection name in DB:', dbCollectionName)
+      console.log('Folder name for URL:', folderName)
+      console.log('Encoded folder name:', encodedFolderName)
+      console.log('Model name:', modelName)
+      console.log('Encoded model name:', encodedModelName)
+      console.log('Full image path:', imagePath)
     }
-    if (traitType.toLowerCase() === 'symbol') {
-      // Convert the value to lowercase and remove spaces for the filename
-      const filename = value.toLowerCase().replace(/\s+/g, '')
-      return `/pattern filter/${filename}.png`
-    }
-    return ''
+    
+    return imagePath
   }
 
   // Update selected attributes when filters change
@@ -132,6 +220,18 @@ export function FilterDialog({ open, onOpenChange }: FilterDialogProps) {
 
       return newState
     })
+  }
+
+  // Track image load errors
+  const handleImageError = (traitType: string, value: string) => {
+    setImageLoadErrors(prev => ({
+      ...prev,
+      [`${traitType}-${value}`]: true
+    }))
+    
+    if (debugMode) {
+      console.error(`Failed to load image for ${traitType}: ${value}`)
+    }
   }
 
   // Apply the filters and fetch filtered items using optimized API
@@ -254,8 +354,41 @@ export function FilterDialog({ open, onOpenChange }: FilterDialogProps) {
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="max-h-[85vh] overflow-y-auto dark:bg-[#141415] dark:text-[#FFFFFF] dark:border-[#1f1f20]">
         <SheetHeader>
-          <SheetTitle className="text-lg font-bold mb-2">Filter Attributes</SheetTitle>
+          <SheetTitle className="text-lg font-bold mb-2" onClick={handleDebugClick}>Filter Attributes</SheetTitle>
         </SheetHeader>
+
+        {/* Debug mode indicator */}
+        {debugMode && (
+          <div className="mb-4 p-2 bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 text-xs rounded-md">
+            <h4 className="font-bold">Debug Mode</h4>
+            <p>Collection in DB: {state.collectionData?.giftName || 'None selected'}</p>
+            <p>Folder name: {state.collectionData?.giftName ? 
+              state.collectionData.giftName.toLowerCase() 
+              : 'None'}</p>
+            <p>Image errors: {Object.keys(imageLoadErrors).length}</p>
+            <p>Selected filters: {totalSelectedFilters}</p>
+            <div className="flex space-x-2 mt-2">
+              <button 
+                onClick={() => setImageLoadErrors({})} 
+                className="px-2 py-1 bg-yellow-200 dark:bg-yellow-800 rounded text-xs"
+              >
+                Reset Error Cache
+              </button>
+              <button 
+                onClick={() => {
+                  if (state.collectionData?.giftName) {
+                    const folderName = encodeURIComponent(state.collectionData.giftName.toLowerCase())
+                    window.open(`/Gift Model Preview/${folderName}`, '_blank')
+                  }
+                }} 
+                className="px-2 py-1 bg-yellow-200 dark:bg-yellow-800 rounded text-xs"
+                disabled={!state.collectionData?.giftName}
+              >
+                Open Images Folder
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Search input */}
         <div className="relative mb-4">
@@ -352,13 +485,46 @@ export function FilterDialog({ open, onOpenChange }: FilterDialogProps) {
                         htmlFor={`${traitType}-${value}`}
                         className="ml-2 text-sm font-medium text-gray-700 dark:text-[#FFFFFF]/90 flex-grow flex items-center gap-2"
                       >
-                        {(['Model','Symbol'].includes(traitType)) && (
-                          <img src={getPreviewUrl(traitType, value)} alt={value} className="w-4 h-4 object-contain" />
+                        {traitType === 'Model' && !imageLoadErrors[`${traitType}-${value}`] && (
+                          <div className="min-w-6 w-6 h-6 mr-1 flex items-center justify-center">
+                            <img 
+                              src={getModelImagePath(value)} 
+                              alt={value} 
+                              className="max-w-full max-h-full object-contain rounded-sm"
+                              onError={() => handleImageError(traitType, value)}
+                            />
+                          </div>
+                        )}
+                        {traitType === 'Model' && imageLoadErrors[`${traitType}-${value}`] && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              // Remove from error cache to try loading again
+                              setImageLoadErrors(prev => {
+                                const newErrors = {...prev};
+                                delete newErrors[`${traitType}-${value}`];
+                                return newErrors;
+                              });
+                            }}
+                            className="min-w-6 w-6 h-6 mr-1 bg-gray-200 dark:bg-gray-700 rounded-sm flex items-center justify-center hover:bg-gray-300 dark:hover:bg-gray-600 focus:outline-none"
+                            title="Image failed to load. Click to retry."
+                          >
+                            <ImageIcon className="w-4 h-4 text-gray-400" />
+                          </button>
                         )}
                         {traitType === 'Backdrop' && (
                           <span className="inline-block w-5 h-5 rounded-full border border-gray-300 mr-2" style={{ background: getBackdropColor(value) }} />
                         )}
                         {value} ({percentage}%)
+                        
+                        {/* Debug information for image paths */}
+                        {debugMode && traitType === 'Model' && (
+                          <span className="ml-1 text-xs text-gray-500 dark:text-gray-400">
+                            [{getModelImagePath(value)}]
+                          </span>
+                        )}
                       </label>
                     </div>
                   ))}
