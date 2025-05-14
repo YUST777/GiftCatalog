@@ -1,17 +1,43 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { getTelegramWebApp } from '@/lib/telegram'
 import { useLanguage } from './app-provider'
 import { translations } from '@/lib/translations'
 import { ExternalLink, Send, Share2, Users } from 'lucide-react'
+import dynamic from 'next/dynamic'
+
+// Dynamically import Lottie to avoid SSR issues
+const Lottie = dynamic(() => import('lottie-react'), { ssr: false })
 
 export function TasksSection() {
   const tg = getTelegramWebApp()
   const { language } = useLanguage()
   const lang: 'en' | 'ru' = language === 'ru' ? 'ru' : 'en'
   const t = translations[lang].tasks
+  const [duckAnimation, setDuckAnimation] = useState<any>(null)
   
+  useEffect(() => {
+    // Load the duck animation JSON
+    fetch('/Coding Duck.json')
+      .then(response => response.json())
+      .then(data => setDuckAnimation(data))
+      .catch(error => console.error('Error loading duck animation:', error))
+  }, [])
+  
+  // Display coming soon message instead of the original tasks content
+  return (
+    <div className="w-full px-0 py-2 animate-fade-in flex flex-col items-center justify-center min-h-[60vh]">
+      <div className="w-48 h-48 relative mb-6">
+        {duckAnimation && <Lottie animationData={duckAnimation} loop={true} />}
+      </div>
+      <h1 className="text-xl font-bold mb-2 text-center">Coming Soon</h1>
+      <p className="text-center text-gray-400">Task feature is under development</p>
+    </div>
+  )
+  
+  // Original code is commented out
+  /*
   const handleChannelClick = (url: string) => {
     if (tg && typeof (window as any).Telegram?.WebApp?.openLink === 'function') {
       (window as any).Telegram.WebApp.openLink(url)
@@ -32,7 +58,6 @@ export function TasksSection() {
     <div className="w-full px-0 py-2 animate-fade-in">
       <h1 className="text-lg font-bold mb-2 text-center">{t.title}</h1>
       
-      {/* Subscribe Channels Block */}
       <div className="mb-2 bg-[#1a1a1a] rounded-xl p-3 shadow-lg w-full">
         <h2 className="text-base font-semibold mb-2 text-white px-1">{t.subscribeChannels}</h2>
         <div className="space-y-1">
@@ -63,7 +88,6 @@ export function TasksSection() {
         </div>
       </div>
       
-      {/* Invite Friends Block */}
       <div className="mb-2 bg-[#1a1a1a] rounded-xl p-3 shadow-lg w-full">
         <h2 className="text-base font-semibold mb-2 text-white px-1">{t.inviteFriends}</h2>
         <div className="space-y-1">
@@ -95,7 +119,6 @@ export function TasksSection() {
         </div>
       </div>
       
-      {/* Share Stories Block */}
       <div className="bg-[#1a1a1a] rounded-xl p-3 shadow-lg w-full">
         <h2 className="text-base font-semibold mb-2 text-white px-1">{t.shareStories}</h2>
         <div className="space-y-1">
@@ -109,6 +132,7 @@ export function TasksSection() {
       </div>
     </div>
   )
+  */
 }
 
 interface TaskProps {
