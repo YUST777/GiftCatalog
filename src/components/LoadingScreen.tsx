@@ -17,10 +17,10 @@ export function LoadingScreen({ children }: { children: React.ReactNode }) {
       .then((res) => res.json())
       .then(setAnimationData);
 
-    // Start fade out after 15s
-    const timer = setTimeout(() => setFadeOut(true), 15000);
-    // Remove overlay after fade out duration (e.g., 0.7s)
-    const removeTimer = setTimeout(() => setShowOverlay(false), 15700);
+    // Start fade out after 4s
+    const timer = setTimeout(() => setFadeOut(true), 4000);
+    // Remove overlay after fade out duration (0.7s) plus initial delay
+    const removeTimer = setTimeout(() => setShowOverlay(false), 4000 + 700);
 
     return () => {
       clearTimeout(timer);
