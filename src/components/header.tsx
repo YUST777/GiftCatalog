@@ -75,13 +75,13 @@ export function Header() {
                 transition={{ duration: 0.4, ease: "easeInOut" }}
                 className="w-full h-full relative"
               >
-                <Image
+            <Image
                   src={state.darkMode ? "/images/blackmode.jpg" : "/images/new-gift-logo.jpg"}
-                  alt="Gift Logo"
-                  width={40}
-                  height={40}
+              alt="Gift Logo"
+              width={40}
+              height={40}
                   className="rounded-md w-full h-full object-cover"
-                />
+            />
               </motion.div>
             </AnimatePresence>
           </div>

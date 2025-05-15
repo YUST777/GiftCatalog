@@ -10,6 +10,7 @@ import { getItems, getAttributes, getCollectionData } from '@/lib/api'
 import { toast } from 'sonner'
 import backdrops from '../../backdrops.json'
 import useSWR from 'swr'
+import { ModelThumbnail } from './ModelThumbnail'
 const enc = encodeURIComponent
 
 // Map database collection names to folder names
@@ -486,14 +487,12 @@ export function FilterDialog({ open, onOpenChange }: FilterDialogProps) {
                         className="ml-2 text-sm font-medium text-gray-700 dark:text-[#FFFFFF]/90 flex-grow flex items-center gap-2"
                       >
                         {traitType === 'Model' && !imageLoadErrors[`${traitType}-${value}`] && (
-                          <div className="min-w-6 w-6 h-6 mr-1 flex items-center justify-center">
-                            <img 
-                              src={getModelImagePath(value)} 
-                              alt={value} 
-                              className="max-w-full max-h-full object-contain rounded-sm"
-                              onError={() => handleImageError(traitType, value)}
-                            />
-                          </div>
+                          <ModelThumbnail
+                            collectionName={state.collectionData?.giftName || ''}
+                            modelName={value}
+                            size="small"
+                            onError={() => handleImageError(traitType, value)}
+                          />
                         )}
                         {traitType === 'Model' && imageLoadErrors[`${traitType}-${value}`] && (
                           <button

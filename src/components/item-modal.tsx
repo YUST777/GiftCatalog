@@ -7,6 +7,13 @@ import type { Item } from '@/lib/db'
 import { Button } from '@/components/ui/button'
 import { X, Send } from 'lucide-react'
 import { useTheme } from 'next-themes'
+import {
+  extractItemNumber,
+  getBaseName,
+  getFragmentImageUrl,
+  getTelegramGiftLink,
+  getModelNameFromAttributes
+} from '@/lib/utils'
 
 interface ItemModalProps {
   item: Item
@@ -23,23 +30,34 @@ export function ItemModal({ item, onClose }: ItemModalProps) {
 
   const isDarkMode = theme === 'dark'
 
-  // Format gift name and extract item number
-  const formatGiftName = (name: string): string => {
-    const parts = name.split('#')
-    return parts[0].trim().toLowerCase().replace(/\s+/g, '')
-  }
-
-  const extractItemNumber = (name: string): string => {
-    const parts = name.split('#')
-    if (parts.length > 1) {
-      return parts[1].trim()
+  // Get collection name - either from state or item name
+  const getCollectionName = (): string => {
+    // Make sure we're getting the proper collection name, not including any ID or number portion
+    const nameFromState = state.collectionData?.giftName;
+    if (nameFromState) {
+      // Make sure it doesn't have '#' or other ID markers
+      return nameFromState.split('#')[0].trim();
     }
-    return String(item.id)
+    
+    // Fallback to item name
+    return getBaseName(item.name);
   }
 
-  const giftName = formatGiftName(item.name)
-  const itemNumber = extractItemNumber(item.name)
-  const imageUrl = `https://nft.fragment.com/gift/${giftName}-${itemNumber}.webp`
+  const collectionName = getCollectionName();
+  const itemNumber = extractItemNumber(item.name, item.id);
+
+  // Generate image URLs using fragment URLs (not CDN)
+  const fragmentImageUrl = getFragmentImageUrl(collectionName, itemNumber, 'webp');
+  const fragmentJpgUrl = getFragmentImageUrl(collectionName, itemNumber, 'jpg');
+  const fragmentPngUrl = getFragmentImageUrl(collectionName, itemNumber, 'png');
+
+  // Generate Telegram link
+  const telegramLink = getTelegramGiftLink(collectionName, itemNumber);
+
+  // Debug log in development
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`Modal showing gift image for ${collectionName}: ${fragmentImageUrl}`);
+  }
 
   // Handle click outside
   const handleBackdropClick = (e: React.MouseEvent) => {
@@ -85,8 +103,6 @@ export function ItemModal({ item, onClose }: ItemModalProps) {
   }, [tg.BackButton])
 
   if (!isClient) return null
-
-  const telegramLink = `https://t.me/nft/${giftName}-${itemNumber}`
 
   // Dark mode colors
   const colors = {
@@ -181,8 +197,28 @@ export function ItemModal({ item, onClose }: ItemModalProps) {
               boxShadow: isDarkMode ? 'none' : '0 1px 3px rgba(0,0,0,0.08)',
               border: isDarkMode ? `1px solid ${colors.border}` : 'none'
             }}>
+              {/* Debug information */}
+              {process.env.NODE_ENV === 'development' && (
+                <div style={{ 
+                  position: 'absolute', 
+                  top: 0, 
+                  left: 0, 
+                  background: 'rgba(0,0,0,0.7)', 
+                  color: 'white',
+                  padding: '4px',
+                  fontSize: '10px',
+                  zIndex: 10,
+                  maxWidth: '100%',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  display: 'none'  // Hidden by default, for debugging set to 'block'
+                }}>
+                  Collection: {collectionName}
+                </div>
+              )}
+              
               <img
-                src={imageUrl}
+                src={fragmentImageUrl}
                 alt={item.name}
                 style={{
                   maxWidth: '100%',
@@ -190,11 +226,13 @@ export function ItemModal({ item, onClose }: ItemModalProps) {
                   objectFit: 'contain'
                 }}
                 onError={(e) => {
-                  const target = e.target as HTMLImageElement
-                  if (target.src.endsWith('.webp')) {
-                    target.src = `https://nft.fragment.com/gift/${giftName}-${itemNumber}.jpg`
-                  } else if (target.src.endsWith('.jpg')) {
-                    target.src = `https://nft.fragment.com/gift/${giftName}-${itemNumber}.png`
+                  const target = e.target as HTMLImageElement;
+                  console.error(`Failed to load image: ${target.src}`);
+                  
+                  if (target.src === fragmentImageUrl || target.src.includes('webp')) {
+                    target.src = fragmentJpgUrl;
+                  } else if (target.src === fragmentJpgUrl || target.src.includes('jpg')) {
+                    target.src = fragmentPngUrl;
                   }
                 }}
               />
@@ -260,37 +298,30 @@ export function ItemModal({ item, onClose }: ItemModalProps) {
           </div>
         </div>
 
-        {/* Footer (fixed) */}
+        {/* Button (fixed) */}
         <div style={{
           padding: '16px',
           borderTop: `1px solid ${colors.border}`,
           backgroundColor: colors.background,
           position: 'sticky',
-          bottom: 0,
-          zIndex: 1
+          bottom: 0
         }}>
-          <Button
-            className="w-full"
-            style={{
-              background: 'linear-gradient(to right, #a855f7, #6366f1)',
-              color: 'white',
-              height: '48px',
-              fontSize: '15px',
+          <a href={telegramLink} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
+            <Button className="w-full h-12" style={{
               borderRadius: '12px',
+              fontSize: '16px',
               fontWeight: '500',
-              boxShadow: `0 2px 8px ${colors.buttonShadow}`
-            }}
-            onClick={() => {
-              if (tg && typeof (window as any).Telegram?.WebApp?.openLink === 'function') {
-                (window as any).Telegram.WebApp.openLink(telegramLink)
-              } else {
-                window.open(telegramLink, '_blank')
-              }
-            }}
-          >
-            <Send className="w-5 h-5 mr-2" />
-            Open in Telegram
-          </Button>
+              background: colors.buttonBg,
+              boxShadow: `0 4px 12px ${colors.buttonShadow}`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px'
+            }}>
+              <Send size={17} style={{ marginRight: '6px' }} />
+              Send in Telegram
+            </Button>
+          </a>
         </div>
       </div>
     </div>
