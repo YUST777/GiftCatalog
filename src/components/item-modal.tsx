@@ -320,7 +320,7 @@ export function ItemModal({ item, onClose }: ItemModalProps) {
             }}>
               <Send size={17} style={{ marginRight: '6px' }} />
               Send in Telegram
-            </Button>
+          </Button>
           </a>
         </div>
       </div>

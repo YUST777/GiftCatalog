@@ -52,6 +52,19 @@ export default function Home() {
       tg.ready()
       tg.expand()
     }
+
+    // Add custom event listener for tab changes from other components
+    const handleTabChange = (event: CustomEvent) => {
+      if (event.detail && event.detail.tab) {
+        setActiveTab(event.detail.tab);
+      }
+    };
+
+    document.addEventListener('changeTab', handleTabChange as EventListener);
+    
+    return () => {
+      document.removeEventListener('changeTab', handleTabChange as EventListener);
+    };
   }, [])
 
   return (
