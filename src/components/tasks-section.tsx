@@ -200,7 +200,7 @@ export function TasksSection() {
     }
   }
   
-  // Modified handleShareStory function with simplified approach
+  // Modified handleShareStory function with direct Telegram API approach
   const handleShareStory = async () => {
     console.log("DEBUG: Starting story share process");
     
@@ -275,8 +275,8 @@ export function TasksSection() {
       return
     }
     
-    // First step: send the story - SIMPLIFIED APPROACH
-    console.log("DEBUG: Attempting to share story (simplified approach)");
+    // First step: send the story - DIRECT TELEGRAM API APPROACH
+    console.log("DEBUG: Attempting to share story with Telegram API");
     
     // Get the Telegram WebApp instance directly
     const tg = getTelegramWebApp();
@@ -289,23 +289,39 @@ export function TasksSection() {
     const storyImageUrl = `${window.location.origin}/images/story-with-text.jpg`;
     console.log("DEBUG: Using image URL:", storyImageUrl);
     
-    // SIMPLIFIED APPROACH:
+    // DIRECT TELEGRAM API APPROACH:
     try {
-      // Simplified approach - just open the image directly without popup
-      console.log("DEBUG: Opening image directly for manual sharing");
-      
-      // Show instructions
-      toast.success(lang === 'en' 
-        ? 'Save this image and share it as a story in Telegram, then come back and click "Check".' 
-        : 'Сохраните это изображение и поделитесь им как историей в Telegram, затем вернитесь и нажмите "Проверить".'
-      );
-      
-      // Open the image
-      window.open(storyImageUrl, '_blank');
-      
-      // Move to checking state
-      localStorage.setItem('storySharingStatus', 'pending_verification');
-      setStoryTaskState('checking');
+      if (tg && tg.shareToStory) {
+        console.log("DEBUG: Using Telegram.WebApp.shareToStory method");
+        
+        // Call the Telegram shareToStory method directly with the proper parameters
+        tg.shareToStory({
+          media_url: storyImageUrl,
+          text: '',
+          // Add the button/link to the story
+          widget_link: {
+            url: botLink,
+            text: "GIFTCATALOG"
+          }
+        });
+        
+        // Move to checking state
+        localStorage.setItem('storySharingStatus', 'pending_verification');
+        setStoryTaskState('checking');
+        
+        // Show success message
+        toast.success(lang === 'en' 
+          ? 'Story shared! Click "Check" to verify and get your points.' 
+          : 'История опубликована! Нажмите "Проверить", чтобы получить баллы.'
+        );
+      } else {
+        // Fallback for testing environments
+        console.log("DEBUG: shareToStory method not available, showing message");
+        toast.error(lang === 'en' 
+          ? 'Story sharing not available in this environment.' 
+          : 'Функция публикации историй недоступна в этой среде.'
+        );
+      }
     } catch (error) {
       console.error('DEBUG: Error in story sharing:', error);
       toast.error(lang === 'en' 

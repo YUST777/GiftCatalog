@@ -29,6 +29,10 @@ export type TelegramWebApp = {
   shareToStory: (params: {
     media_url: string;
     text?: string;
+    widget_link?: {
+      url: string;
+      text?: string;
+    };
   }) => void;
   MainButton: {
     show: () => void;
