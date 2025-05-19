@@ -9,6 +9,8 @@ import dynamic from 'next/dynamic'
 import { toast } from 'sonner'
 import { useAppState } from '@/lib/state'
 import { Button } from './ui/button'
+import { useRouter } from 'next/navigation'
+import { shareToTelegramStory } from '@/lib/telegram-webapp-utils'
 
 // Dynamically import Lottie to avoid SSR issues
 const Lottie = dynamic(() => import('lottie-react'), { ssr: false })
@@ -31,6 +33,11 @@ export function TasksSection() {
     [TWE_CHANNEL_ID]: 'start'
   })
   const { state, dispatch } = useAppState()
+  const router = useRouter()
+  
+  // Add state for story sharing task
+  const [storyTaskState, setStoryTaskState] = useState<'start' | 'checking' | 'done'>('start')
+  const [storyLastShared, setStoryLastShared] = useState<string | null>(null)
   
   // Fetch user points and completed tasks on mount
   useEffect(() => {
@@ -63,12 +70,39 @@ export function TasksSection() {
           }
         })
         setChannelTaskStates(newTaskStates)
+        
+        // Check if story was shared today
+        const storyTask = data.completedTasks.find((task: {type: string, id: string}) => 
+          task.type === 'story' && task.id === getCurrentDate()
+        )
+        
+        if (storyTask) {
+          setStoryTaskState('done')
+          setStoryLastShared(getCurrentDate())
+        } else {
+          // Check if we have pending verification
+          const storySharingStatus = localStorage.getItem('storySharingStatus')
+          if (storySharingStatus === 'pending_verification') {
+            setStoryTaskState('checking')
+          } else {
+            setStoryTaskState('start')
+          }
+        }
       }
     } catch (error) {
       console.error('Error fetching user points:', error)
     } finally {
       setIsLoading(false)
     }
+  }
+  
+  // Helper function to get current date and hour (for multiple tests per day)
+  const getCurrentDate = () => {
+    const date = new Date()
+    // For testing: Include the current hour in the date to allow multiple tests per day (every hour)
+    // This enables up to 24 tests per day (one per hour)
+    const hour = Math.floor(date.getHours() / 5) // Divide day into 5 periods (allowing 5 tests per day)
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}-${hour}`
   }
   
   // Check if a task is completed
@@ -166,11 +200,154 @@ export function TasksSection() {
     }
   }
   
-  const handleShareStory = () => {
-    if (tg && typeof (window as any).Telegram?.WebApp?.openLink === 'function') {
-      (window as any).Telegram.WebApp.openLink('https://t.me/share/url?url=Check%20out%20this%20awesome%20Gift%20Catalog!%20https://t.me/Gift_Catalog')
-    } else {
-      window.open('https://t.me/share/url?url=Check%20out%20this%20awesome%20Gift%20Catalog!%20https://t.me/Gift_Catalog', '_blank')
+  // Modified handleShareStory function with simplified approach
+  const handleShareStory = async () => {
+    console.log("DEBUG: Starting story share process");
+    
+    if (!telegramUser?.id) {
+      console.log("DEBUG: No Telegram user ID found", telegramUser);
+      toast.error(lang === 'en' ? 'You need to be logged in' : 'Необходимо авторизоваться')
+      return
+    }
+    
+    console.log("DEBUG: User ID:", telegramUser.id, "Story task state:", storyTaskState);
+    
+    // If checking status, verify the story was shared
+    if (storyTaskState === 'checking') {
+      console.log("DEBUG: In checking state, verifying story share");
+      try {
+        setIsLoading(true)
+        const response = await fetch('/api/story-share', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: telegramUser.id.toString(),
+            taskId: getCurrentDate(), // Use current date as task ID for daily limit
+            verify: true // Add verify flag
+          }),
+        })
+        
+        console.log("DEBUG: Story verification API response status:", response.status);
+        const data = await response.json()
+        console.log("DEBUG: Story verification API response data:", data);
+        
+        if (data.success) {
+          console.log("DEBUG: Story verification successful");
+          toast.success(lang === 'en' 
+            ? `You earned 1 point for sharing a story!` 
+            : `Вы заработали 1 балл за историю!`
+          )
+          
+          // Update local points and completed tasks
+          setUserPoints(prev => prev + 1)
+          setCompletedTasks(prev => [...prev, { type: 'story', id: getCurrentDate() }])
+          setStoryTaskState('done')
+          setStoryLastShared(getCurrentDate())
+          
+          // Clear local storage state
+          localStorage.removeItem('storySharingStatus')
+        } else if (data.notShared) {
+          console.log("DEBUG: Story verification failed - not shared");
+          toast.error(lang === 'en' 
+            ? 'We could not verify your story share. Please try again.' 
+            : 'Мы не смогли подтвердить публикацию вашей истории. Пожалуйста, попробуйте снова.'
+          )
+          setStoryTaskState('start')
+          localStorage.removeItem('storySharingStatus')
+        } else if (data.alreadyCompleted) {
+          console.log("DEBUG: Story verification found task already completed");
+          toast.info(lang === 'en' 
+            ? 'You already completed this task today' 
+            : 'Вы уже выполнили это задание сегодня'
+          )
+          setStoryTaskState('done')
+          setStoryLastShared(getCurrentDate())
+        }
+      } catch (error) {
+        console.error('DEBUG: Error verifying story share:', error)
+        toast.error(lang === 'en' 
+          ? 'An error occurred. Please try again.' 
+          : 'Произошла ошибка. Пожалуйста, попробуйте снова.'
+        )
+      } finally {
+        setIsLoading(false)
+      }
+      return
+    }
+    
+    // First step: send the story - SIMPLIFIED APPROACH
+    console.log("DEBUG: Attempting to share story (simplified approach)");
+    
+    // Get the Telegram WebApp instance directly
+    const tg = getTelegramWebApp();
+    console.log("DEBUG: Telegram WebApp instance:", tg);
+    
+    // Always use the direct bot link as requested
+    const botLink = "https://t.me/GiftCatalog_bot";
+    
+    // Construct the image URL with the current origin to ensure it works with ngrok
+    const storyImageUrl = `${window.location.origin}/images/story-with-text.jpg`;
+    console.log("DEBUG: Using image URL:", storyImageUrl);
+    
+    // SIMPLIFIED APPROACH:
+    try {
+      // 1. First show a popup with instructions
+      if (tg && typeof tg.showPopup === 'function') {
+        console.log("DEBUG: Showing instructions popup");
+        tg.showPopup({
+          title: lang === 'en' ? 'Share this story' : 'Поделиться историей',
+          message: lang === 'en' 
+            ? 'After saving the image, please share it as a story on Telegram, then come back and click "Check".' 
+            : 'После сохранения изображения, пожалуйста, поделитесь им как историей в Telegram, затем вернитесь и нажмите "Проверить".',
+          buttons: [
+            { type: 'default', text: lang === 'en' ? 'Download image' : 'Скачать изображение', id: 'download' }
+          ]
+        });
+        
+        // Use a callback to handle the popup button press
+        (window as any).Telegram.WebApp.onEvent('popup_closed', function(data: any) {
+          console.log("DEBUG: Popup closed with data:", data);
+          if (data && data.button_id === 'download') {
+            // Open the image for downloading/saving
+            console.log("DEBUG: Opening image for download");
+            window.open(storyImageUrl, '_blank');
+            
+            // Move to checking state
+            console.log("DEBUG: Moving to checking state");
+            localStorage.setItem('storySharingStatus', 'pending_verification');
+            setStoryTaskState('checking');
+            
+            // Show instruction toast
+            toast.success(lang === 'en' 
+              ? 'Please share the image as a story in Telegram, then come back and click "Check".' 
+              : 'Пожалуйста, поделитесь изображением как историей в Telegram, затем вернитесь и нажмите "Проверить".'
+            );
+          }
+        });
+        
+        return;
+      }
+      
+      // 2. Fallback if popup not available: just open the image and show a toast
+      console.log("DEBUG: Opening image directly as fallback");
+      window.open(storyImageUrl, '_blank');
+      
+      // Move to checking state
+      localStorage.setItem('storySharingStatus', 'pending_verification');
+      setStoryTaskState('checking');
+      
+      // Show instruction toast
+      toast.success(lang === 'en' 
+        ? 'Please save this image and share it as a story in Telegram, then come back and click "Check".' 
+        : 'Пожалуйста, сохраните это изображение и поделитесь им как историей в Telegram, затем вернитесь и нажмите "Проверить".'
+      );
+      
+    } catch (error) {
+      console.error('DEBUG: Error in story sharing:', error);
+      toast.error(lang === 'en' 
+        ? 'An error occurred. Please try again.' 
+        : 'Произошла ошибка. Пожалуйста, попробуйте снова.'
+      );
     }
   }
   
@@ -243,10 +420,15 @@ export function TasksSection() {
             <h2 className="text-base font-semibold mb-2 text-white px-1">{t.shareStories}</h2>
             <div className="space-y-1">
               <StoryTask 
-                description="Share story" 
+                description={storyLastShared === getCurrentDate() 
+                  ? lang === 'en'
+                    ? `Shared in this time period (${getCurrentDate().split('-').slice(0, 3).join('-')})` 
+                    : `Опубликовано в этот период (${getCurrentDate().split('-').slice(0, 3).join('-')})`
+                  : "Share story"
+                }
                 points={1} 
                 onShare={handleShareStory}
-                status="start"
+                status={storyTaskState}
               />
             </div>
           </div>
@@ -367,12 +549,23 @@ function StoryTask({ description, points, onShare, status }: StoryTaskProps) {
   const { language } = useLanguage()
   const lang: 'en' | 'ru' = language === 'ru' ? 'ru' : 'en'
   const t = translations[lang].tasks
+  const router = useRouter()
+  
+  const handleClick = () => {
+    if (status !== 'done') {
+      onShare()
+    }
+  }
   
   return (
     <div className="flex items-center justify-between py-0.5 px-1">
       <div className="flex items-center flex-1">
         <div className="w-8 h-8 rounded-full bg-[#2a2a2a] flex items-center justify-center mr-2">
-          <Share2 className="w-4 h-4 text-white" />
+          {status === 'done' ? (
+            <Check className="w-4 h-4 text-green-500" />
+          ) : (
+            <Share2 className="w-4 h-4 text-white" />
+          )}
         </div>
         <div>
           <p className="font-medium text-sm text-white leading-tight">{description}</p>
@@ -386,12 +579,19 @@ function StoryTask({ description, points, onShare, status }: StoryTaskProps) {
         className={`px-4 py-1 rounded-full text-xs font-medium min-w-[80px] ${
           status === 'done' 
             ? 'bg-[#333333] text-gray-400 cursor-not-allowed' 
-            : 'bg-gradient-to-r from-purple-500 to-indigo-500 text-white shadow-md hover:from-purple-600 hover:to-indigo-600'
+            : status === 'checking'
+              ? 'bg-indigo-600 text-white shadow-md hover:bg-indigo-700'
+              : 'bg-gradient-to-r from-purple-500 to-indigo-500 text-white shadow-md hover:from-purple-600 hover:to-indigo-600'
         }`}
         disabled={status === 'done'}
-        onClick={onShare}
+        onClick={handleClick}
       >
-        {status === 'done' ? t.done : t.start}
+        {status === 'done' 
+          ? t.done 
+          : status === 'checking' 
+            ? (lang === 'en' ? 'Check' : 'Проверить')
+            : t.start
+        }
       </button>
     </div>
   )
