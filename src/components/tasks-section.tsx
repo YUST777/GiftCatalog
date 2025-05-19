@@ -1,4 +1,5 @@
 'use client'
+// Force update for git push
 
 import { useState, useEffect } from 'react'
 import { getTelegramWebApp } from '@/lib/telegram'
