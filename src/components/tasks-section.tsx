@@ -291,57 +291,21 @@ export function TasksSection() {
     
     // SIMPLIFIED APPROACH:
     try {
-      // 1. First show a popup with instructions
-      if (tg && typeof tg.showPopup === 'function') {
-        console.log("DEBUG: Showing instructions popup");
-        tg.showPopup({
-          title: lang === 'en' ? 'Share this story' : 'Поделиться историей',
-          message: lang === 'en' 
-            ? 'After saving the image, please share it as a story on Telegram, then come back and click "Check".' 
-            : 'После сохранения изображения, пожалуйста, поделитесь им как историей в Telegram, затем вернитесь и нажмите "Проверить".',
-          buttons: [
-            { type: 'default', text: lang === 'en' ? 'Download image' : 'Скачать изображение', id: 'download' }
-          ]
-        });
-        
-        // Use a callback to handle the popup button press
-        (window as any).Telegram.WebApp.onEvent('popup_closed', function(data: any) {
-          console.log("DEBUG: Popup closed with data:", data);
-          if (data && data.button_id === 'download') {
-            // Open the image for downloading/saving
-            console.log("DEBUG: Opening image for download");
-            window.open(storyImageUrl, '_blank');
-            
-            // Move to checking state
-            console.log("DEBUG: Moving to checking state");
-            localStorage.setItem('storySharingStatus', 'pending_verification');
-            setStoryTaskState('checking');
-            
-            // Show instruction toast
-            toast.success(lang === 'en' 
-              ? 'Please share the image as a story in Telegram, then come back and click "Check".' 
-              : 'Пожалуйста, поделитесь изображением как историей в Telegram, затем вернитесь и нажмите "Проверить".'
-            );
-          }
-        });
-        
-        return;
-      }
+      // Simplified approach - just open the image directly without popup
+      console.log("DEBUG: Opening image directly for manual sharing");
       
-      // 2. Fallback if popup not available: just open the image and show a toast
-      console.log("DEBUG: Opening image directly as fallback");
+      // Show instructions
+      toast.success(lang === 'en' 
+        ? 'Save this image and share it as a story in Telegram, then come back and click "Check".' 
+        : 'Сохраните это изображение и поделитесь им как историей в Telegram, затем вернитесь и нажмите "Проверить".'
+      );
+      
+      // Open the image
       window.open(storyImageUrl, '_blank');
       
       // Move to checking state
       localStorage.setItem('storySharingStatus', 'pending_verification');
       setStoryTaskState('checking');
-      
-      // Show instruction toast
-      toast.success(lang === 'en' 
-        ? 'Please save this image and share it as a story in Telegram, then come back and click "Check".' 
-        : 'Пожалуйста, сохраните это изображение и поделитесь им как историей в Telegram, затем вернитесь и нажмите "Проверить".'
-      );
-      
     } catch (error) {
       console.error('DEBUG: Error in story sharing:', error);
       toast.error(lang === 'en' 

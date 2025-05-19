@@ -12,6 +12,24 @@ export type TelegramWebApp = {
   ready: () => void;
   expand: () => void;
   close: () => void;
+  showPopup: (params: {
+    title?: string;
+    message: string;
+    buttons?: Array<{
+      type: string;
+      text?: string;
+      id?: string;
+    }>;
+  }) => void;
+  switchInlineQuery: (query: string) => void;
+  openTelegramLink: (url: string) => void;
+  openLink: (url: string) => void;
+  postEvent: (eventName: string, eventData?: any) => void;
+  onEvent: (eventName: string, callback: (data?: any) => void) => void;
+  shareToStory: (params: {
+    media_url: string;
+    text?: string;
+  }) => void;
   MainButton: {
     show: () => void;
     hide: () => void;
@@ -45,6 +63,8 @@ export type TelegramWebApp = {
     button_text_color?: string;
     secondary_bg_color?: string;
   };
+  version?: string;
+  isTestMode?: boolean;
 };
 
 // Create a mock Telegram Web App for when the real one is not available
@@ -55,6 +75,13 @@ export const createMockTelegramWebApp = (): TelegramWebApp => {
     ready: () => logWarning('Telegram WebApp'),
     expand: () => logWarning('Telegram expand'),
     close: () => logWarning('Telegram close'),
+    showPopup: () => logWarning('Telegram showPopup'),
+    switchInlineQuery: () => logWarning('Telegram switchInlineQuery'),
+    openTelegramLink: () => logWarning('Telegram openTelegramLink'),
+    openLink: () => logWarning('Telegram openLink'),
+    postEvent: () => logWarning('Telegram postEvent'),
+    onEvent: () => logWarning('Telegram onEvent'),
+    shareToStory: () => logWarning('Telegram shareToStory'),
     MainButton: {
       show: () => logWarning('MainButton.show'),
       hide: () => logWarning('MainButton.hide'),
@@ -75,6 +102,8 @@ export const createMockTelegramWebApp = (): TelegramWebApp => {
     initData: '',
     initDataUnsafe: {},
     themeParams: {},
+    version: '',
+    isTestMode: false,
   };
 };
 
