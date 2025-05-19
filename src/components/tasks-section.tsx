@@ -275,7 +275,7 @@ export function TasksSection() {
       return
     }
     
-    // First step: send the story - DIRECT TELEGRAM API APPROACH
+    // First step: share the story using Telegram API
     console.log("DEBUG: Attempting to share story with Telegram API");
     
     // Get the Telegram WebApp instance directly
@@ -289,16 +289,15 @@ export function TasksSection() {
     const storyImageUrl = `${window.location.origin}/images/story-with-text.jpg`;
     console.log("DEBUG: Using image URL:", storyImageUrl);
     
-    // DIRECT TELEGRAM API APPROACH:
     try {
       if (tg && tg.shareToStory) {
         console.log("DEBUG: Using Telegram.WebApp.shareToStory method");
         
-        // Call the Telegram shareToStory method directly with the proper parameters
+        // Call the Telegram shareToStory method directly with the correct parameters
+        // Using the format from the HTML example
         tg.shareToStory({
           media_url: storyImageUrl,
-          text: '',
-          // Add the button/link to the story
+          text: 'Check out GiftCatalog!',
           widget_link: {
             url: botLink,
             text: "GIFTCATALOG"
@@ -315,11 +314,15 @@ export function TasksSection() {
           : 'История опубликована! Нажмите "Проверить", чтобы получить баллы.'
         );
       } else {
-        // Fallback for testing environments
+        // Fallback for testing environments or when Telegram API is not available
         console.log("DEBUG: shareToStory method not available, showing message");
-        toast.error(lang === 'en' 
-          ? 'Story sharing not available in this environment.' 
-          : 'Функция публикации историй недоступна в этой среде.'
+        
+        // Redirect to the dedicated Share to Story page
+        window.open('/share-to-story.html', '_blank');
+        
+        toast.info(lang === 'en' 
+          ? 'Opening dedicated share page. Please use that page to share to your story.' 
+          : 'Открывается страница для публикации. Используйте ее для публикации в истории.'
         );
       }
     } catch (error) {

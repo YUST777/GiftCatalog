@@ -21,7 +21,7 @@ export const shareToTelegramStory = (options: {
   caption?: string,
   widget_link?: {
     url: string,
-    name?: string
+    text?: string
   },
   onSuccess?: () => void,
   onError?: (error: any) => void
@@ -32,41 +32,38 @@ export const shareToTelegramStory = (options: {
     console.log('DEBUG STORY SHARE: Starting story sharing process');
     console.log('DEBUG STORY SHARE: Media URL provided:', mediaUrl);
     
-    // Create the payload according to Telegram's expected format
-    const payload: any = {}; 
-    
-    // Add basic properties
-    payload.media_url = mediaUrl;
-    payload.text = caption;
-    
-    // Add widget_link if provided
-    if (widget_link) {
-      console.log('DEBUG STORY SHARE: Adding widget_link:', widget_link);
-      payload.widget_link = {
-        url: widget_link.url,
-        text: widget_link.name
-      };
-    }
-    
-    console.log('DEBUG STORY SHARE: Full payload:', JSON.stringify(payload));
-    
     // Get the Telegram WebApp instance
     const tg = (window as any).Telegram?.WebApp;
     console.log('DEBUG STORY SHARE: Telegram WebApp available:', Boolean(tg));
     
-    // Just try to open the image directly
-    console.log('DEBUG STORY SHARE: Opening image directly for manual sharing');
-    try {
-      window.open(mediaUrl, '_blank');
+    if (tg) {
+      // Use the direct Telegram.WebApp.shareToStory method with the correct parameter format
+      tg.shareToStory({
+        media_url: mediaUrl,
+        text: caption,
+        widget_link: widget_link ? {
+          url: widget_link.url,
+          text: widget_link.text
+        } : undefined
+      });
       
       if (onSuccess) onSuccess();
       return true;
-    } catch (e) {
-      console.error('DEBUG STORY SHARE: Error opening image:', e);
-      if (onError) {
-        onError(new Error('Failed to open image: ' + (e as Error).message));
+    } else {
+      // Fallback to opening the image directly if Telegram WebApp is not available
+      console.log('DEBUG STORY SHARE: Telegram WebApp not available, opening image directly');
+      try {
+        window.open(mediaUrl, '_blank');
+        
+        if (onSuccess) onSuccess();
+        return true;
+      } catch (e) {
+        console.error('DEBUG STORY SHARE: Error opening image:', e);
+        if (onError) {
+          onError(new Error('Failed to open image: ' + (e as Error).message));
+        }
+        return false;
       }
-      return false;
     }
   } catch (error) {
     console.error('DEBUG STORY SHARE: Fatal error in story sharing utility:', error);

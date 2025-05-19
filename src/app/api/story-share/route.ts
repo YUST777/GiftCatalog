@@ -37,31 +37,31 @@ export async function POST(request: NextRequest) {
     const currentTaskId = taskId || new Date().toISOString().split('T')[0]; // Use provided taskId or today's date
     console.log(`Checking for task completion with userId=${userId}, taskId=${currentTaskId}`);
     
-    const [existingTask] = await pool.execute(
-      'SELECT id FROM user_tasks WHERE user_id = ? AND task_type = ? AND task_id = ?',
+      const [existingTask] = await pool.execute(
+        'SELECT id FROM user_tasks WHERE user_id = ? AND task_type = ? AND task_id = ?',
       [userId, 'story', currentTaskId]
-    );
-    
+      );
+      
     // If task is already completed, just return success
-    if ((existingTask as any[]).length > 0) {
+      if ((existingTask as any[]).length > 0) {
       console.log('Task already completed');
-      return NextResponse.json({ 
-        success: false,
-        message: 'Task already completed',
-        alreadyCompleted: true
-      });
+        return NextResponse.json({ 
+          success: false,
+          message: 'Task already completed',
+          alreadyCompleted: true
+        });
     }
     
     // If this is just a verification request
     if (verify) {
       // Simplified verification - we'll just award points directly since the user clicked "Check"
       // In a real app, you might want to check story presence with the Telegram API
-      
-      // Start a transaction
-      const connection = await pool.getConnection();
-      await connection.beginTransaction();
-      
-      try {
+    
+    // Start a transaction
+    const connection = await pool.getConnection();
+    await connection.beginTransaction();
+    
+    try {
         // Add task completion record
         console.log('Adding task completion record');
         await connection.execute(
@@ -77,21 +77,21 @@ export async function POST(request: NextRequest) {
            ON DUPLICATE KEY UPDATE points = points + 1`,
           [userId]
         );
-        
-        await connection.commit();
-        
+      
+      await connection.commit();
+      
         console.log('Points awarded successfully');
-        return NextResponse.json({ 
-          success: true,
+      return NextResponse.json({ 
+        success: true,
           message: 'Points awarded for sharing story'
-        });
-      } catch (error) {
+      });
+    } catch (error) {
         console.error('Error in transaction:', error);
-        await connection.rollback();
-        throw error;
-      } finally {
-        connection.release();
-      }
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
     }
     
     // If we get here, this is just a notification about intent to share
