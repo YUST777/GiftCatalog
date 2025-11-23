@@ -60,15 +60,15 @@ export function ProfileSection() {
           </div>
         </div>
         <div className="flex gap-3 w-full justify-center mb-4">
-          <Button variant="default" onClick={handleDarkModeToggle} className="rounded-lg px-4 py-2">
+          <Button variant="outline" onClick={handleDarkModeToggle} className="rounded-lg px-4 py-2">
             {state.darkMode ? t.lightMode : t.darkMode}
           </Button>
-          <Button variant="default" onClick={handlePerformanceToggle} className="rounded-lg px-4 py-2">
+          <Button variant="outline" onClick={handlePerformanceToggle} className="rounded-lg px-4 py-2">
             {state.performanceMode ? t.performanceOn : t.performanceOff}
           </Button>
         </div>
         <div className="flex gap-3 w-full justify-center">
-          <Button variant="default" onClick={handleLanguageToggle} className="rounded-lg px-4 py-2">
+          <Button variant="outline" onClick={handleLanguageToggle} className="rounded-lg px-4 py-2">
             {lang === 'en' ? t.english : t.russian}
           </Button>
         </div>

@@ -30,26 +30,26 @@
   }
 
   .dark {
-    /* Dark mode colors - Custom theme */
-    --background: 0 0% 7%;  /* #121212 */
-    --foreground: 197 100% 97%;  /* #f3fbff */
-    --card: 0 0% 14%;  /* #232323 */
-    --card-foreground: 197 100% 97%;  /* #f3fbff */
-    --popover: 0 0% 7%;  /* #121212 */
-    --popover-foreground: 197 100% 97%;  /* #f3fbff */
-    --primary: 197 100% 97%;  /* #f3fbff */
-    --primary-foreground: 0 0% 7%;  /* #121212 */
-    --secondary: 0 0% 14%;  /* #232323 */
-    --secondary-foreground: 197 100% 97%;  /* #f3fbff */
-    --muted: 0 0% 14%;  /* #232323 */
-    --muted-foreground: 213 17% 84%;  /* #cbd4e2 - icon unused */
-    --accent: 255 80% 72%;  /* #8d79f3 - icon used */
-    --accent-foreground: 197 100% 97%;  /* #f3fbff */
+    /* Dark mode colors - Rich and sophisticated */
+    --background: 222 47% 11%;
+    --foreground: 210 40% 98%;
+    --card: 222 47% 14%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222 47% 11%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 210 40% 98%;
+    --primary-foreground: 222 47% 11%;
+    --secondary: 217 33% 17%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 270 50% 20%;
+    --accent-foreground: 270 50% 95%;
     --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 197 100% 97%;  /* #f3fbff */
-    --border: 0 0% 14%;  /* #232323 */
-    --input: 0 0% 14%;  /* #232323 */
-    --ring: 255 80% 72%;  /* #8d79f3 - icon used */
+    --destructive-foreground: 210 40% 98%;
+    --border: 217 33% 17%;
+    --input: 217 33% 17%;
+    --ring: 270 50% 40%;
   }
 
   /* Custom Font */
@@ -172,9 +172,9 @@ body:has(.modal-open) {
 }
 
 @keyframes pulse-soft {
-  0% { box-shadow: 0 0 0 0 rgba(141, 121, 243, 0.3); }  /* #8d79f3 */
-  70% { box-shadow: 0 0 0 10px rgba(141, 121, 243, 0); }  /* #8d79f3 */
-  100% { box-shadow: 0 0 0 0 rgba(141, 121, 243, 0); }  /* #8d79f3 */
+  0% { box-shadow: 0 0 0 0 rgba(144, 58, 255, 0.3); }
+  70% { box-shadow: 0 0 0 10px rgba(144, 58, 255, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(144, 58, 255, 0); }
 }
 
 .animate-pulse-soft {
@@ -183,22 +183,22 @@ body:has(.modal-open) {
 
 /* Enhanced dark mode styling with improved contrast */
 .dark .glow-text {
-  text-shadow: 0 0 15px rgba(141, 121, 243, 0.5), 0 0 30px rgba(141, 121, 243, 0.3);  /* #8d79f3 */
+  text-shadow: 0 0 15px rgba(147, 51, 234, 0.5), 0 0 30px rgba(147, 51, 234, 0.3);
 }
 
 .dark .glow-effect {
-  box-shadow: 0 0 15px rgba(141, 121, 243, 0.2), 0 0 30px rgba(141, 121, 243, 0.1);  /* #8d79f3 */
+  box-shadow: 0 0 15px rgba(147, 51, 234, 0.2), 0 0 30px rgba(147, 51, 234, 0.1);
 }
 
 /* Card gradients for dark mode with higher contrast */
 .dark .bg-card {
-  background: linear-gradient(to bottom right, hsl(0, 0%, 14%), hsl(0, 0%, 10%));  /* #232323 to #1a1a1a */
+  background: linear-gradient(to bottom right, hsl(222, 47%, 14%), hsl(222, 47%, 12%));
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
 
 /* Button hover effects in dark mode */
 .dark .hover-glow:hover {
-  box-shadow: 0 0 15px rgba(141, 121, 243, 0.2);  /* #8d79f3 */
+  box-shadow: 0 0 15px rgba(147, 51, 234, 0.2);
   transform: translateY(-1px);
   transition: all 0.3s ease;
 }
@@ -210,7 +210,7 @@ body:has(.modal-open) {
 
 /* Gradient text for dark mode with improved contrast */
 .dark .gradient-text {
-  background: linear-gradient(to right, hsl(255, 80%, 72%), hsl(255, 80%, 60%));  /* #8d79f3 to #7a63f2 */
+  background: linear-gradient(to right, hsl(270, 50%, 60%), hsl(280, 50%, 50%));
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -228,11 +228,6 @@ a, button, .card, .btn, .interactive {
   transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
-/* Common gradient button style */
-.btn-gradient {
-  @apply bg-gradient-to-r from-purple-500 to-indigo-500 text-white shadow-md hover:from-purple-600 hover:to-indigo-600 transition-all duration-300;
-}
-
 /* Add bottom padding to main content to prevent it from being hidden behind the mobile nav */
 @media (max-width: 640px) {
   main {
@@ -247,17 +242,17 @@ a, button, .card, .btn, .interactive {
 }
 
 .dark ::-webkit-scrollbar-track {
-  background: hsl(0, 0%, 7%);  /* #121212 */
+  background: hsl(222, 47%, 12%);
   border-radius: 4px;
 }
 
 .dark ::-webkit-scrollbar-thumb {
-  background: hsl(0, 0%, 14%);  /* #232323 */
+  background: hsl(217, 33%, 25%);
   border-radius: 4px;
 }
 
 .dark ::-webkit-scrollbar-thumb:hover {
-  background: hsl(255, 80%, 72%);  /* #8d79f3 */
+  background: hsl(217, 33%, 30%);
 }
 
 /* Hide scrollbar but keep functionality */

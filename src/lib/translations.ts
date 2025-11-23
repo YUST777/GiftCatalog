@@ -16,15 +16,6 @@ export const translations = {
       totalPointsSoon: 'Total Points (add soon)',
     },
     profileLabel: 'Profile',
-    tasks: {
-      title: 'Coins for tasks!',
-      subscribeChannels: 'Subscribe channels',
-      inviteFriends: 'Invite Your Friends',
-      shareStories: 'Share Stories',
-      done: 'Done',
-      start: 'Start',
-      points: 'points',
-    },
     donation: {
       support: 'Support the Project',
       help: 'Your donations help keep this project running! Send TON to the wallet address below.',
@@ -77,15 +68,6 @@ export const translations = {
       totalPointsSoon: 'Всего баллов (скоро)',
     },
     profileLabel: 'Профиль',
-    tasks: {
-      title: 'Монеты за задания!',
-      subscribeChannels: 'Подписаться на каналы',
-      inviteFriends: 'Пригласить друзей',
-      shareStories: 'Поделиться историями',
-      done: 'Готово',
-      start: 'Начать',
-      points: 'баллов',
-    },
     donation: {
       support: 'Поддержать проект',
       help: 'Ваши пожертвования помогают поддерживать этот проект! Отправьте TON на адрес кошелька ниже.',

@@ -21,7 +21,7 @@ export default function RootLayout({
       <head>
         <script src="https://telegram.org/js/telegram-web-app.js" defer />
       </head>
-      <body className="min-h-screen bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-[#121212] dark:to-[#121212] font-sans text-sm">
+      <body className="min-h-screen bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 font-sans text-sm">
         <LoadingScreen>
           <AppProvider>
             <ClientStyleEffects />

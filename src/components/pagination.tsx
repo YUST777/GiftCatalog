@@ -143,10 +143,10 @@ export function Pagination() {
     <div className="flex justify-center items-center mt-6 bg-card dark:bg-muted/10 p-4 rounded-xl shadow-md border border-border dark:border-border/20 dark:shadow-card">
       <div className="flex items-center justify-center space-x-4">
         <Button
-          variant="default"
+          variant="outline"
           onClick={handlePrevPage}
           disabled={state.currentPage === 1 || isLoading}
-          className="w-12 h-12 p-0 rounded-full bg-card text-foreground border border-border dark:border-border/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 shadow-sm hover-glow"
+          className="w-12 h-12 p-0 rounded-full border border-border dark:border-border/30 bg-card dark:bg-muted/20 text-foreground dark:text-foreground hover:bg-muted/20 dark:hover:bg-muted/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 shadow-sm hover-glow"
           aria-label="Previous page"
         >
           <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
@@ -163,10 +163,10 @@ export function Pagination() {
         </div>
 
         <Button
-          variant="default"
+          variant="outline"
           onClick={handleNextPage}
           disabled={state.currentPage === state.collectionData.totalPages || isLoading}
-          className="w-12 h-12 p-0 rounded-full bg-card text-foreground border border-border dark:border-border/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 shadow-sm hover-glow"
+          className="w-12 h-12 p-0 rounded-full border border-border dark:border-border/30 bg-card dark:bg-muted/20 text-foreground dark:text-foreground hover:bg-muted/20 dark:hover:bg-muted/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 shadow-sm hover-glow"
           aria-label="Next page"
         >
           <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">

@@ -42,10 +42,3 @@ next-env.d.ts
 
 # Local Netlify folder
 .netlify
-
-# Python virtual environment
-/venv
-
-# Remove tracked preview model data
-/Gift Model Preview
-/public/Gift Model Preview

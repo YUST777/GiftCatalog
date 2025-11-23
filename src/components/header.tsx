@@ -10,8 +10,6 @@ import { toast } from 'sonner'
 import { useLanguage } from './app-provider'
 import { translations } from '@/lib/translations'
 import { useCollectionData } from '@/hooks/use-collection-data'
-import { motion, AnimatePresence } from 'framer-motion'
-import { useState, useEffect } from 'react'
 
 export function Header() {
   const { state } = useAppState()
@@ -19,12 +17,6 @@ export function Header() {
   const lang: 'en' | 'ru' = language === 'ru' ? 'ru' : 'en'
   const t = translations[lang].header
   const tg = getTelegramWebApp()
-  const [logoKey, setLogoKey] = useState(0) // Used to force animation to restart
-
-  // Use effect to update logo key when dark mode changes
-  useEffect(() => {
-    setLogoKey(prev => prev + 1)
-  }, [state.darkMode])
 
   // Use SWR for collection data
   const { mutate: mutateCollectionData } = useCollectionData({
@@ -65,25 +57,14 @@ export function Header() {
     <header className="bg-card border border-border dark:border-accent/20 rounded-xl shadow-lg p-4 mb-6 backdrop-filter backdrop-blur-lg bg-opacity-90 dark:bg-opacity-60 dark:glow-effect transition-all duration-300 animate-fade-in">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 relative flex items-center justify-center bg-white dark:bg-[#121212] rounded-md shadow-sm hover:shadow-md transition-all duration-300 transform hover:scale-105 overflow-hidden">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={logoKey}
-                initial={{ opacity: 0, y: 20, rotateY: 90 }}
-                animate={{ opacity: 1, y: 0, rotateY: 0 }}
-                exit={{ opacity: 0, y: -20, rotateY: -90 }}
-                transition={{ duration: 0.4, ease: "easeInOut" }}
-                className="w-full h-full relative"
-              >
+          <div className="w-10 h-10 relative flex items-center justify-center bg-white dark:bg-white rounded-md shadow-sm hover:shadow-md transition-all duration-300 transform hover:scale-105">
             <Image
-                  src={state.darkMode ? "/images/blackmode.jpg" : "/images/new-gift-logo.jpg"}
+              src="/images/new-gift-logo.jpg"
               alt="Gift Logo"
               width={40}
               height={40}
-                  className="rounded-md w-full h-full object-cover"
+              className="rounded-md transition-all duration-300"
             />
-              </motion.div>
-            </AnimatePresence>
           </div>
           <a
             href="https://t.me/Gift_Catalog"

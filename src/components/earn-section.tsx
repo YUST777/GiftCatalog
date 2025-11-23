@@ -1,0 +1,1 @@
+const ENTRY_TIMER = 7; // Changed from 15 to 7 seconds 

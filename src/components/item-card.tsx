@@ -5,14 +5,6 @@ import { useAppState } from '@/lib/state'
 import { Card, CardFooter } from '@/components/ui/card'
 import type { Item } from '@/lib/db'
 import { ItemModal } from '@/components/item-modal'
-import {
-  extractItemNumber,
-  getBaseName,
-  getCdnImageUrl,
-  getFragmentImageUrl,
-  getFragmentLottieUrl,
-  getModelNameFromAttributes
-} from '@/lib/utils'
 
 interface ItemCardProps {
   item: Item
@@ -63,30 +55,24 @@ export function ItemCard({ item }: ItemCardProps) {
     }
   }, [isClient])
 
-  // Get collection name - either from state or item name
-  const getCollectionName = () => {
-    // Make sure we're getting the proper collection name, not including any ID or number portion
-    const nameFromState = state.collectionData?.giftName;
-    if (nameFromState) {
-      // Make sure it doesn't have '#' or other ID markers
-      return nameFromState.split('#')[0].trim();
-    }
-    
-    // Fallback to item name
-    return getBaseName(item.name);
+  // Helper function to format collection name for URL
+  const formatCollectionName = (name: string): string => {
+    return name.trim().toLowerCase().replace(/\s+/g, '')
   }
 
-  // Prepare URLs
-  const collectionName = getCollectionName();
-  const itemNumber = extractItemNumber(item.name, item.id);
+  // Extract the ID number from the item name
+  const extractItemNumber = (name: string): string => {
+    const itemNameParts = name.split('#')
+    if (itemNameParts.length > 1) {
+      return itemNameParts[1].trim()
+    }
+    return String(item.id)
+  }
 
-  // We'll only use Fragment URLs for item cards as originally intended
-  const fragmentWebpUrl = getFragmentImageUrl(collectionName, itemNumber, 'webp');
-  const fragmentJpgUrl = getFragmentImageUrl(collectionName, itemNumber, 'jpg');
-  const fragmentPngUrl = getFragmentImageUrl(collectionName, itemNumber, 'png');
-
-  // URL for Lottie animation
-  const lottieUrl = getFragmentLottieUrl(collectionName, itemNumber);
+  // Use current collection name from state
+  const collectionName = state.collectionData?.giftName ? formatCollectionName(state.collectionData.giftName) : formatCollectionName(item.name)
+  const itemNumber = extractItemNumber(item.name)
+  const lottieUrl = `https://nft.fragment.com/gift/${collectionName}-${itemNumber}.lottie.json`
 
   // Load content only when item is visible
   const loadContent = useCallback(() => {
@@ -96,38 +82,29 @@ export function ItemCard({ item }: ItemCardProps) {
 
     const loadImage = () => {
       if (containerRef.current) {
-        const img = new Image();
-        
-        // Use Fragment URL directly (as original code)
-        img.src = fragmentWebpUrl;
-        img.className = 'w-full h-full object-cover rounded-none transition-all duration-300';
-        img.alt = item.name;
-        img.loading = 'lazy';
-        img.style.display = 'block';
+        const img = new Image()
+        img.src = `https://nft.fragment.com/gift/${collectionName}-${itemNumber}.webp`
+        img.className = 'w-full h-full object-cover rounded-none transition-all duration-300'
+        img.alt = item.name
+        img.loading = 'lazy'
+        img.style.display = 'block'
 
         img.onload = () => {
-          img.classList.add('loaded');
-          containerRef.current?.classList.add('image-loaded');
-        };
+          img.classList.add('loaded')
+          containerRef.current?.classList.add('image-loaded')
+        }
 
-        // Fallbacks if webp fails
         img.onerror = () => {
-          console.log(`Trying fallback for ${item.name}: ${fragmentJpgUrl}`);
-          img.src = fragmentJpgUrl;
+          img.src = `https://nft.fragment.com/gift/${collectionName}-${itemNumber}.jpg`
           img.onerror = () => {
-            console.log(`Trying second fallback for ${item.name}: ${fragmentPngUrl}`);
-            img.src = fragmentPngUrl;
-            img.onerror = () => {
-              console.error(`All image formats failed for ${item.name}`);
-              img.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2VlZWVlZSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LXNpemU9IjI0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBhbGlnbm1lbnQtYmFzZWxpbmU9Im1pZGRsZSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZmlsbD0iIzU1NTU1NSI+SW1hZ2UgTm90IEZvdW5kPC90ZXh0Pjwvc3ZnPg==';
-            };
-          };
-        };
+            img.src = `https://nft.fragment.com/gift/${collectionName}-${itemNumber}.png`
+          }
+        }
 
-        containerRef.current.innerHTML = '';
-        containerRef.current.appendChild(img);
+        containerRef.current.innerHTML = ''
+        containerRef.current.appendChild(img)
       }
-    };
+    }
 
     const loadLottie = async () => {
       loadImage()
@@ -167,7 +144,7 @@ export function ItemCard({ item }: ItemCardProps) {
     if (!state.performanceMode) {
       loadLottie()
     }
-  }, [isVisible, isLoaded, item, state.performanceMode, fragmentWebpUrl, fragmentJpgUrl, fragmentPngUrl, lottieUrl])
+  }, [isVisible, isLoaded, item, state.performanceMode, collectionName, itemNumber])
 
   // Cleanup lottie animation on unmount
   useEffect(() => {
